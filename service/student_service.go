@@ -19,6 +19,7 @@ func SetStudentCollection(client *mongo.Client, database string) {
 }
 
 // GetStudents retrieves all Students from the database
+
 func GetStudents() ([]models.Student, error) {
 	cursor, err := studentCollection.Find(context.Background(), bson.D{})
 	if err != nil {

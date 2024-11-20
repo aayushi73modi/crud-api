@@ -6,6 +6,7 @@ import (
 	"student-teacher-api/Request"
 	"student-teacher-api/Response"
 	"student-teacher-api/manager"
+	models "student-teacher-api/model"
 
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -18,7 +19,21 @@ type StudentController struct {
 
 // GetStudents handler to fetch all Students
 func (c *StudentController) GetStudents(ctx echo.Context) error {
-	students, err := c.Service.GetStudents()
+	// Get flag query parameter
+	flag := ctx.QueryParam("flag")
+	var students []models.Student
+	var err error
+	// If flag is 0, use MongoDB; if flag is 1, use PostgreSQL
+	if flag == "0" {
+		// Fetch students from MongoDB
+		students, err = c.Service.GetStudentsFromMongoDB()
+	} else if flag == "1" {
+		// Fetch students from PostgreSQL
+		students, err = c.Service.GetStudentsFromPostgreSQL()
+	} else {
+		return ctx.JSON(http.StatusBadRequest, "Invalid flag parameter")
+	}
+
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
@@ -28,8 +43,10 @@ func (c *StudentController) GetStudents(ctx echo.Context) error {
 	for _, student := range students {
 		StudentResponses = append(StudentResponses, Response.FromModel(student))
 	}
+
 	log.Println("Returned all students")
 	return ctx.JSON(http.StatusOK, StudentResponses)
+
 }
 
 // GetStudentByID handler to fetch a Student by ID

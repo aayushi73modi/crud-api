@@ -5,23 +5,37 @@ import (
 	models "student-teacher-api/model"
 	"student-teacher-api/service"
 
-	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // StudentService handles operations related to Students
 type StudentService struct {
-	Validator *validator.Validate
+	//Validator *validator.Validate
 }
 
 // ValidateStudent validates the Student struct
-func (s *StudentService) ValidateStudent(Student *models.Student) error {
-	return s.Validator.Struct(Student)
+// func (s *StudentService) ValidateStudent(Student *models.Student) error {
+// 	return s.Validator.Struct(Student)
+// }
+
+// GetStudentsFromMongoDB fetches all students from MongoDB
+func (s *StudentService) GetStudentsFromMongoDB() ([]models.Student, error) {
+	students, err := service.GetStudents()
+	if err != nil {
+		log.Println("Error fetching students from MongoDB:", err)
+		return nil, err
+	}
+	return students, nil
 }
 
-// GetStudents fetches all Students
-func (s *StudentService) GetStudents() ([]models.Student, error) {
-	return service.GetStudents()
+// GetStudentsFromPostgreSQL fetches all students from PostgreSQL
+func (s *StudentService) GetStudentsFromPostgreSQL() ([]models.Student, error) {
+	students, err := service.GetStudents()
+	if err != nil {
+		log.Println("Error fetching students from PostgreSQL:", err)
+		return nil, err
+	}
+	return students, nil
 }
 
 // GetStudent fetches a Student by ID

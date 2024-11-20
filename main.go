@@ -28,18 +28,27 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 }
 
 func main() {
+	//config.PostgresConnect()
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using default configurations.")
 	}
-	// Connect to the database
+	// Connect to the MongoDB
 	client, err := config.ConnectDatabase()
 	if err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
 
+	// Connect to PostgreSQL
+	postgresDB, err := config.PostgresConnect()
+	if err != nil {
+		log.Fatalf("PostgreSQL connection failed: %v", err)
+	}
+
 	// Set the student collection in the service
 	service.SetStudentCollection(client, "student")
+	// Set the database connection for PostgreSQL
+	service.SetDatabase(postgresDB)
 
 	// Initialize the Echo instance
 	e := echo.New()
