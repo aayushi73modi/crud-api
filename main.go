@@ -29,7 +29,6 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 
 func main() {
 	//config.PostgresConnect()
-	// Load environment variables
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using default configurations.")
 	}
@@ -38,15 +37,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
-
 	// Connect to PostgreSQL
 	postgresDB, err := config.PostgresConnect()
 	if err != nil {
 		log.Fatalf("PostgreSQL connection failed: %v", err)
 	}
-
 	// Set the student collection in the service
 	service.SetStudentCollection(client, "student")
+
 	// Set the database connection for PostgreSQL
 	service.SetDatabase(postgresDB)
 
@@ -57,10 +55,10 @@ func main() {
 	e.Validator = &CustomValidator{Validator: validator.New()}
 
 	// Initialize the movie service
-	studentService := &manager.StudentService{}
+	studentManager := &manager.StudentManager{}
 
 	// Initialize the controller with the movieService instance
-	StudentController := &controller.StudentController{Service: studentService}
+	StudentController := &controller.StudentController{Manager: studentManager}
 
 	// Setup routes with the movieController
 	routes.SetupRoutes(e, StudentController)

@@ -1,72 +1,92 @@
 package manager
 
 import (
-	"log"
+	"errors"
 	models "student-teacher-api/model"
 	"student-teacher-api/service"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// StudentService handles operations related to Students
-type StudentService struct {
-	//Validator *validator.Validate
-}
+// StudentManager handles business logic for Students
+type StudentManager struct{}
 
-// ValidateStudent validates the Student struct
-// func (s *StudentService) ValidateStudent(Student *models.Student) error {
-// 	return s.Validator.Struct(Student)
-// }
-
-// GetStudentsFromMongoDB fetches all students from MongoDB
-func (s *StudentService) GetStudentsFromMongoDB() ([]models.Student, error) {
-	students, err := service.GetStudents()
-	if err != nil {
-		log.Println("Error fetching students from MongoDB:", err)
-		return nil, err
+// GetStudents fetches all Students based on the data source
+func (m *StudentManager) GetStudents(flag bool) ([]models.Student, error) {
+	switch flag {
+	case true: //1
+		return service.GetStudentsFromMongoDB()
+	case false: //0
+		return service.GetStudentsFromPostgreSQL()
+	default:
+		return nil, errors.New("invalid flag parameter")
 	}
-	return students, nil
 }
 
-// GetStudentsFromPostgreSQL fetches all students from PostgreSQL
-func (s *StudentService) GetStudentsFromPostgreSQL() ([]models.Student, error) {
-	students, err := service.GetStudents()
-	if err != nil {
-		log.Println("Error fetching students from PostgreSQL:", err)
-		return nil, err
+// GetStudentByID fetches a Student by ID from the selected data source
+func (m *StudentManager) GetStudentByID(flag bool, id string) (models.Student, error) {
+	switch flag {
+	case true:
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return models.Student{}, err
+		}
+		return service.GetStudentByIDFromMongoDB(objectID)
+	case false:
+		return service.GetStudentByIDFromPostgreSQL(id)
+	default:
+		return models.Student{}, errors.New("invalid flag parameter")
 	}
-	return students, nil
 }
 
-// GetStudent fetches a Student by ID
-func (s *StudentService) GetStudent(id string) (models.Student, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return models.Student{}, err
+// CreateStudent creates a new Student in the selected data source
+func (m *StudentManager) CreateStudent(flag bool, student models.Student) (models.Student, error) {
+	switch flag {
+	case true:
+		return service.InsertStudent(student)
+	case false:
+		return service.InsertStudentps(student)
+	default:
+		return models.Student{}, errors.New("invalid flag parameter")
 	}
-	return service.GetStudentByID(objectID)
 }
 
-// CreateStudent inserts a new Student and returns the created Student
-func (s *StudentService) CreateStudent(Student models.Student) (models.Student, error) {
-	return service.InsertStudent(Student)
-}
-
-// UpdateStudent updates an existing Student
-func (s *StudentService) UpdateStudent(id string, Student models.Student) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
+// UpdateStudent updates an existing Student in the selected data source
+func (m *StudentManager) UpdateStudent(flag bool, id string, student models.Student) (models.Student, error) {
+	switch flag {
+	case true: // MongoDB
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return models.Student{}, err
+		}
+		updatedStudent, err := service.UpdateStudentInMongoDB(objectID, student)
+		if err != nil {
+			return models.Student{}, err
+		}
+		return updatedStudent, nil
+	case false: // PostgresSQL
+		updatedStudent, err := service.UpdateStudentInPostgreSQL(id, student)
+		if err != nil {
+			return models.Student{}, err
+		}
+		return updatedStudent, nil
+	default:
+		return models.Student{}, errors.New("invalid flag parameter")
 	}
-	return service.UpdateStudent(objectID, Student)
 }
 
-// DeleteStudent deletes a Student by ID
-func (s *StudentService) DeleteStudent(id string) error {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return err
+// DeleteStudent deletes a Student from the selected data source
+func (m *StudentManager) DeleteStudent(flag bool, id string) error {
+	switch flag {
+	case true:
+		objectID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			return err
+		}
+		return service.DeleteStudent(objectID)
+	case false:
+		return service.DeleteStudents(id)
+	default:
+		return errors.New("invalid flag parameter")
 	}
-	log.Println("Deleted Student!")
-	return service.DeleteStudent(objectID)
 }

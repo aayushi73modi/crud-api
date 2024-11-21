@@ -3,126 +3,144 @@ package controller
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"student-teacher-api/Request"
 	"student-teacher-api/Response"
 	"student-teacher-api/manager"
-	models "student-teacher-api/model"
 
 	"github.com/labstack/echo/v4"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // StudentController handles HTTP requests related to Students
 type StudentController struct {
-	Service *manager.StudentService
+	Manager *manager.StudentManager
 }
 
 // GetStudents handler to fetch all Students
 func (c *StudentController) GetStudents(ctx echo.Context) error {
-	// Get flag query parameter
-	flag := ctx.QueryParam("flag")
-	var students []models.Student
-	var err error
-	// If flag is 0, use MongoDB; if flag is 1, use PostgreSQL
-	if flag == "0" {
-		// Fetch students from MongoDB
-		students, err = c.Service.GetStudentsFromMongoDB()
-	} else if flag == "1" {
-		// Fetch students from PostgreSQL
-		students, err = c.Service.GetStudentsFromPostgreSQL()
-	} else {
-		return ctx.JSON(http.StatusBadRequest, "Invalid flag parameter")
+	flagValue := ctx.QueryParam("flag")
+	flag, err := strconv.ParseBool(flagValue)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid flag value. Accepted values are 0 or 1.",
+		})
 	}
-
+	students, err := c.Manager.GetStudents(flag)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	// Convert Students to response models
-	StudentResponses := make([]Response.StudentResponse, 0, len(students))
+	studentResponses := make([]Response.StudentResponse, 0, len(students))
 	for _, student := range students {
-		StudentResponses = append(StudentResponses, Response.FromModel(student))
+		studentResponses = append(studentResponses, Response.FromModel(student))
 	}
 
 	log.Println("Returned all students")
-	return ctx.JSON(http.StatusOK, StudentResponses)
-
+	return ctx.JSON(http.StatusOK, studentResponses)
 }
 
 // GetStudentByID handler to fetch a Student by ID
 func (c *StudentController) GetStudentByID(ctx echo.Context) error {
-	id := ctx.Param("id")
-	Student, err := c.Service.GetStudent(id)
+	flagValue := ctx.QueryParam("flag")
+	flag, err := strconv.ParseBool(flagValue)
 	if err != nil {
-		return ctx.JSON(http.StatusNotFound, err.Error())
+		return ctx.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid flag value. Accepted values are 0 or 1.",
+		})
 	}
+	id := ctx.Param("id")
+
+	student, err := c.Manager.GetStudentByID(flag, id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, err.Error())
+	}
+
 	log.Println("Returned student by ID")
-	return ctx.JSON(http.StatusOK, Response.FromModel(Student))
+	return ctx.JSON(http.StatusOK, Response.FromModel(student))
 }
 
 // CreateStudent handler to create a new Student
 func (c *StudentController) CreateStudent(ctx echo.Context) error {
+	// Parse the flag parameter as boolean
+	flagValue := ctx.QueryParam("flag")
+	flag, err := strconv.ParseBool(flagValue)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid flag value. Accepted values are true or false.",
+		})
+	}
+
+	// Bind and validate the student request
 	var req Request.StudentRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
 	}
-
-	// Validate the request
 	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	// Convert request model to main model
+	// Convert request to model
 	student := req.ToModel()
-	result, err := c.Service.CreateStudent(student)
+
+	// Call CreateStudent with the parsed flag (boolean)
+	result, err := c.Manager.CreateStudent(flag, student)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
+
 	log.Println("Created new student")
 	return ctx.JSON(http.StatusCreated, Response.FromModel(result))
 }
 
+// UpdateStudent handler to update an existing Student
 func (c *StudentController) UpdateStudent(ctx echo.Context) error {
-	// Get the ID from the URL parameter
-	id := ctx.Param("id")
-
-	// Convert string ID to ObjectID
-	objectID, err := primitive.ObjectIDFromHex(id)
+	flagValue := ctx.QueryParam("flag")
+	flag, err := strconv.ParseBool(flagValue)
 	if err != nil {
-		return ctx.JSON(http.StatusBadRequest, "Invalid ID format")
+		return ctx.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid flag value. Accepted values are 0 or 1.",
+		})
 	}
-
+	id := ctx.Param("id")
 	var req Request.StudentRequest
-
-	// Bind the request data to the StudentRequest struct
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
 	}
-
-	// Validate the request
 	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
 	}
-
-	// Convert request model to main model (ensure id is correctly set)
 	student := req.ToModel()
-	student.ID = objectID // Set the Student ID as ObjectID
-
-	// Call the service to update the Student
-	if err := c.Service.UpdateStudent(id, student); err != nil {
+	updatedStudent, err := c.Manager.UpdateStudent(flag, id, student)
+	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
 	log.Println("Updated student successfully")
-
-	// Return the updated Student with the ID
-	return ctx.JSON(http.StatusOK, student)
+	return ctx.JSON(http.StatusOK, updatedStudent)
 }
 
 // DeleteStudent handler to delete a Student
 func (c *StudentController) DeleteStudent(ctx echo.Context) error {
-	id := ctx.Param("id")
-	if err := c.Service.DeleteStudent(id); err != nil {
-		return ctx.JSON(http.StatusInternalServerError, err.Error())
+	flagValue := ctx.QueryParam("flag")
+	flag, err := strconv.ParseBool(flagValue)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Invalid flag value. Accepted values are 0 or 1.",
+		})
 	}
-	return ctx.JSON(http.StatusOK, "Student deleted")
+	id := ctx.Param("id")
+	if id == "" {
+		return ctx.JSON(http.StatusBadRequest, map[string]string{
+			"error": "Student ID is required.",
+		})
+	}
+	err = c.Manager.DeleteStudent(flag, id)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+	}
+	log.Printf("Deleted student with ID %s successfully", id)
+	return ctx.JSON(http.StatusOK, map[string]string{
+		"message": "Student deleted successfully",
+	})
 }

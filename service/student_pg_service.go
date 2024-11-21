@@ -1,87 +1,85 @@
 package service
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	models "student-teacher-api/model"
 
-	_ "github.com/lib/pq" // PostgreSQL driver
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
-var db *sql.DB
+var db *gorm.DB
 
-// SetDatabase initializes the database connection
-func SetDatabase(database *sql.DB) {
+// SetDatabase initializes the GORM database connection
+func SetDatabase(database *gorm.DB) {
 	db = database
+}
 
+func InsertStudentps(student models.Student) (models.Student, error) {
+	// Before inserting, ensure the table exists (AutoMigrate is already called in PostgresConnect)
+	err := db.AutoMigrate(&models.Student{}) // Create the table if it doesn't exist
+	if err != nil {
+		log.Println("Error during AutoMigrate:", err)
+		return models.Student{}, fmt.Errorf("error ensuring table exists: %w", err)
+	}
+
+	// Now insert the student record
+	err = db.Create(&student).Error
+	if err != nil {
+		log.Println("Error inserting student:", err)
+		return models.Student{}, fmt.Errorf("error inserting student: %w", err)
+	}
+
+	return student, nil
 }
 
 // GetStudents retrieves all Students from the database
 func GetStudentsFromPostgreSQL() ([]models.Student, error) {
-	rows, err := db.Query("SELECT id, name, age, class FROM studentsps")
+	var students []models.Student
+	err := db.Find(&students).Error
 	if err != nil {
 		log.Println("Error fetching students:", err)
 		return nil, err
 	}
-	defer rows.Close()
-
-	var students []models.Student
-	for rows.Next() {
-		var student models.Student
-		if err := rows.Scan(&student.ID, &student.Student_name, &student.Age, &student.Class); err != nil {
-			log.Println("Error scanning student:", err)
-			continue
-		}
-		students = append(students, student)
-	}
 	return students, nil
 }
 
-// GetStudentByID fetches a Student by its ID
-func GetStudentsByID(id int) (models.Student, error) {
+// GetStudentByIDFromPostgreSQL fetches a Student by ID from PostgreSQL
+func GetStudentByIDFromPostgreSQL(id string) (models.Student, error) {
 	var student models.Student
-	err := db.QueryRow("SELECT id, name, age, class FROM students WHERE id = $1", id).Scan(
-		&student.ID, &student.Student_name, &student.Age, &student.Class)
+	err := db.Where("id = ?", id).First(&student).Error
 	if err != nil {
+		log.Println("Error fetching student by ID from PostgreSQL:", err)
 		return models.Student{}, err
 	}
-	return student, nil
-}
-
-// InsertStudent inserts a new Student into the database
-func InsertStudentps(student models.Student) (models.Student, error) {
-	var id int
-	err := db.QueryRow(
-		"INSERT INTO students (id,name, age, class) VALUES ($1, $2, $3,$4) RETURNING id",
-		student.ID, student.Student_name, student.Age, student.Class,
-	).Scan(&id)
-	log.Println("Insert record in postgres.")
-	if err != nil {
-		return models.Student{}, err
-	}
-	//student.ID = result.InsertedID.(primitive.ObjectID)
-	student.ID = primitive.NewObjectID()
 	return student, nil
 }
 
 // UpdateStudent updates an existing Student
-func UpdateStudents(id int, student models.Student) error {
-	_, err := db.Exec(
-		"UPDATE students SET name = $1, age = $2, class = $3 WHERE id = $4",
-		student.ID, student.Student_name, student.Age, student.Class, id,
-	)
+func UpdateStudentInPostgreSQL(id string, student models.Student) (models.Student, error) {
+	// Perform the update in PostgreSQL
+	err := db.Model(&models.Student{}).Where("id = ?", id).Updates(student).Error
 	if err != nil {
-		return fmt.Errorf("error updating student: %w", err)
+		return models.Student{}, fmt.Errorf("error updating student: %w", err)
 	}
-	return nil
+
+	// Return the updated student data
+	student.ID = id // Set the ID (PostgreSQL uses integers for IDs)
+	return student, nil
 }
 
 // DeleteStudent deletes a Student by its ID
-func DeleteStudents(id int) error {
-	_, err := db.Exec("DELETE FROM students WHERE id = $1", id)
+func DeleteStudents(id string) error {
+	studentID, err := uuid.Parse(id)
 	if err != nil {
+		log.Println("Error parsing UUID:", err)
+		return fmt.Errorf("invalid UUID format: %w", err)
+	}
+	//delete the student by UUID
+	err = db.Delete(&models.Student{}, "id = ?", studentID).Error
+	if err != nil {
+		log.Println("Error deleting student:", err)
 		return fmt.Errorf("error deleting student: %w", err)
 	}
 	return nil

@@ -2,16 +2,14 @@ package Request
 
 import (
 	models "student-teacher-api/model"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // StudentRequest is the request structure for creating and updating a Student
 type StudentRequest struct {
-	ID           primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Student_name string             `bson:"student_name" json:"student_name" validate:"required"`
-	Age          int                `bson:"age" json:"age" validate:"required"`
-	Class        string             `bson:"class" json:"class" validate:"required"`
+	ID           string `bson:"_id,omitempty" json:"id" gorm:"gorm:"column:id;type:uuid;default:gen_random_uuid()""`
+	Student_name string `bson:"student_name" json:"student_name" validate:"required" gorm:"student_name"`
+	Age          int    `bson:"age" json:"age" validate:"required" gorm:"age"`
+	Class        string `bson:"class" json:"class" validate:"required" gorm:"class"`
 }
 
 // ToModel converts a StudentRequest to a Student model

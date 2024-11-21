@@ -2,18 +2,25 @@ package config
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
+	models "student-teacher-api/model"
 
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var Client *mongo.Client
-var PG *sql.DB
+var PG *gorm.DB
+
+type MongoConfig struct {
+	MongoDBURL  string `env:"MONGODB_URL" envDefault:""`
+	MongoDBName string `env:"MONGODB_DB_NAME" envDefault:""`
+}
 
 // Load environment variables
 func LoadEnv() {
@@ -22,34 +29,33 @@ func LoadEnv() {
 	}
 }
 
-func PostgresConnect() (*sql.DB, error) {
+func PostgresConnect() (*gorm.DB, error) {
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
-	postgresHost := os.Getenv("POSTGRES_HOST")
-	postgresPort := os.Getenv("POSTGRES_PORT")
-	postgresUser := os.Getenv("POSTGRES_USER")
-	postgresPassword := os.Getenv("POSTGRES_PASSWORD")
-	postgresDB := os.Getenv("POSTGRES_DB")
+	postgresDSN := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_DB"),
+	)
 
-	postgresDSN := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", postgresHost, postgresPort, postgresUser, postgresPassword, postgresDB)
-	PGDB, err := sql.Open("postgres", postgresDSN)
+	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Error connecting to PostgreSQL:", err)
 	}
 
-	err = PGDB.Ping()
-	if err != nil {
-		log.Fatal("Error pinging PostgreSQL:", err)
-	}
-	if PGDB == nil {
-		log.Println("Database connection is nil!")
-	}
-	PG = PGDB
+	PG = db
 	log.Println("Connected to PostgreSQL successfully!")
-	return PGDB, nil
+	err = db.AutoMigrate(&models.Student{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to auto-migrate: %w", err)
+	}
+	return db, nil
 }
 
 // ConnectDatabase initializes the MongoDB client
