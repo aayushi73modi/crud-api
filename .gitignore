@@ -1,3 +1,4 @@
 /nsql/data/nsqd.dat
 /nsqlookupd/datansqd/data/nsqd.dat
 .env
+.env.example
