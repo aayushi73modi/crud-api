@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"student-teacher-api/config"
 	"student-teacher-api/controller"
 	"student-teacher-api/manager"
 	"student-teacher-api/routes"
@@ -32,12 +33,12 @@ func main() {
 		log.Println("No .env file found, using default configurations.")
 	}
 	// Connect to the MongoDB
-	client, err := ConnectDatabase()
+	client, err := config.ConnectDatabase()
 	if err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
 	// Connect to PostgreSQL
-	postgresDB, err := PostgresConnect()
+	postgresDB, err := config.PostgresConnect()
 	if err != nil {
 		log.Fatalf("PostgreSQL connection failed: %v", err)
 	}
