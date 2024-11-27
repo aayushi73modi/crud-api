@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"student-teacher-api/config"
 	models "student-teacher-api/model"
 
 	"github.com/joho/godotenv"
@@ -18,38 +19,38 @@ var Client *mongo.Client
 var PG *gorm.DB
 
 // Load environment variables
+
 func LoadEnv() {
 	if err := godotenv.Load(); err != nil {
 		log.Fatalf("Error loading .env file")
 	}
 }
 
-func PostgresConnect() (*gorm.DB, error) {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
+func PostgresConnect(cfg *config.PostgresConfig) (*gorm.DB, error) {
+	// Construct the DSN
 	postgresDSN := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("POSTGRES_HOST"),
-		os.Getenv("POSTGRES_PORT"),
-		os.Getenv("POSTGRES_USER"),
-		os.Getenv("POSTGRES_PASSWORD"),
-		os.Getenv("POSTGRES_DB"),
+		cfg.POSTGRES_HOST,
+		cfg.POSTGRES_PORT,
+		cfg.POSTGRES_USER,
+		cfg.POSTGRES_PASSWORD,
+		cfg.POSTGRES_DB,
 	)
+	log.Printf("Postgres DSN: %s", postgresDSN)
 
+	// Connect to PostgreSQL
 	db, err := gorm.Open(postgres.Open(postgresDSN), &gorm.Config{})
 	if err != nil {
-		log.Fatal("Error connecting to PostgreSQL:", err)
+		return nil, fmt.Errorf("error connecting to PostgreSQL: %w", err)
 	}
-
-	PG = db
 	log.Println("Connected to PostgreSQL successfully!")
-	err = db.AutoMigrate(&models.Student{})
-	if err != nil {
+	PG = db
+
+	// Automatically migrate the database schema for the Student model
+	if err := db.AutoMigrate(&models.Student{}); err != nil {
 		return nil, fmt.Errorf("failed to auto-migrate: %w", err)
 	}
+
 	return db, nil
 }
 

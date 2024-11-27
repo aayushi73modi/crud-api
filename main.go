@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"student-teacher-api/config"
 	"student-teacher-api/controller"
 	"student-teacher-api/db"
 	"student-teacher-api/manager"
 	"student-teacher-api/routes"
 	"student-teacher-api/service"
-
 	_ "github.com/lib/pq"
 
 	"github.com/go-playground/validator/v10"
@@ -37,11 +37,18 @@ func main() {
 	if err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
+
+	// Load PostgreSQL configuration
+	postgresCfg, err := config.LoadPostgresConfig()
+	if err != nil {
+		log.Fatalf("Failed to load PostgreSQL configuration: %v", err)
+	}
 	// Connect to PostgreSQL
-	postgresDB, err := db.PostgresConnect()
+	postgresDB, err := db.PostgresConnect(postgresCfg)
 	if err != nil {
 		log.Fatalf("PostgreSQL connection failed: %v", err)
 	}
+
 	// Set the student collection in the service
 	service.SetStudentCollection(client, "student")
 
