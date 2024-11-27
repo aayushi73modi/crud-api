@@ -1,4 +1,4 @@
-package config
+package db
 
 import (
 	"context"
@@ -16,21 +16,6 @@ import (
 
 var Client *mongo.Client
 var PG *gorm.DB
-
-type MongoConfig struct {
-	MongoDBURL           string `env:"MONGODB_URL" envDefault:"mongodb://localhost:27017"`
-	MongoDBName          string `env:"MONGODB_DB_NAME" envDefault:"student"`
-	SetStudentCollection string `env:"SetStudentCollection" envDefault:"student"`
-}
-
-type PostgresConfi struct {
-	POSTGRES_HOST string `env:"POSTGRES_HOST" envDefault:"localhost"`
-	POSTGRES_PORT string `env:"POSTGRES_PORT" envDefault:"5433"`
-	//POSTGRES_USER     string `env:"POSTGRES_USER" envDefault:""root"`
-	POSTGRES_PASSWORD string `env:"POSTGRES_PASSWORD" envDefault:"root"`
-	POSTGRES_DB       string `env:"POSTGRES_DB" envDefault:"studentpostgres"`
-	//SetStudentCollection string `env:"SetStudentCollection" envDefault:"student"`
-}
 
 // Load environment variables
 func LoadEnv() {

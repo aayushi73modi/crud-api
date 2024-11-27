@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"student-teacher-api/config"
 	"student-teacher-api/controller"
+	"student-teacher-api/db"
 	"student-teacher-api/manager"
 	"student-teacher-api/routes"
 	"student-teacher-api/service"
@@ -33,12 +33,12 @@ func main() {
 		log.Println("No .env file found, using default configurations.")
 	}
 	// Connect to the MongoDB
-	client, err := config.ConnectDatabase()
+	client, err := db.ConnectDatabase()
 	if err != nil {
 		log.Fatalf("Database connection failed: %v", err)
 	}
 	// Connect to PostgreSQL
-	postgresDB, err := config.PostgresConnect()
+	postgresDB, err := db.PostgresConnect()
 	if err != nil {
 		log.Fatalf("PostgreSQL connection failed: %v", err)
 	}
@@ -54,13 +54,13 @@ func main() {
 	// Set the default validator to the Echo instance
 	e.Validator = &CustomValidator{Validator: validator.New()}
 
-	// Initialize the movie service
+	// Initialize the student service
 	studentManager := &manager.StudentManager{}
 
-	// Initialize the controller with the movieService instance
+	// Initialize the controller with the studentService instance
 	StudentController := &controller.StudentController{Manager: studentManager}
 
-	// Setup routes with the movieController
+	// Setup routes with the studentController
 	routes.SetupRoutes(e, StudentController)
 
 	// Start the server

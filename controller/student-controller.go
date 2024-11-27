@@ -22,7 +22,7 @@ func (c *StudentController) GetStudents(ctx echo.Context) error {
 	flag, err := strconv.ParseBool(flagValue)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid flag value. Accepted values are 0 or 1.",
+			"error": "Invalid flag value. Accepted true or false.",
 		})
 	}
 	students, err := c.Manager.GetStudents(flag)
@@ -45,7 +45,7 @@ func (c *StudentController) GetStudentByID(ctx echo.Context) error {
 	flag, err := strconv.ParseBool(flagValue)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid flag value. Accepted values are 0 or 1.",
+			"error": "Invalid flag value. Accepted true or false.",
 		})
 	}
 	id := ctx.Param("id")
@@ -98,7 +98,7 @@ func (c *StudentController) UpdateStudent(ctx echo.Context) error {
 	flag, err := strconv.ParseBool(flagValue)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid flag value. Accepted values are 0 or 1.",
+			"error": "Invalid flag value. Accepted true or false.",
 		})
 	}
 	id := ctx.Param("id")
@@ -124,7 +124,7 @@ func (c *StudentController) DeleteStudent(ctx echo.Context) error {
 	flag, err := strconv.ParseBool(flagValue)
 	if err != nil {
 		return ctx.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid flag value. Accepted values are 0 or 1.",
+			"error": "Invalid flag value. Accepted true or false.",
 		})
 	}
 	id := ctx.Param("id")
