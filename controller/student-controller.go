@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"student-teacher-api/Request"
-	"student-teacher-api/Response"
 	"student-teacher-api/manager"
 
 	"github.com/labstack/echo/v4"
@@ -25,17 +24,10 @@ func (c *StudentController) GetStudents(ctx echo.Context) error {
 			"error": "Invalid flag value. Accepted true or false.",
 		})
 	}
-	students, err := c.Manager.GetStudents(flag)
+	studentResponses, err := c.Manager.GetStudents(flag)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
-
-	studentResponses := make([]Response.StudentResponse, 0, len(students))
-	for _, student := range students {
-		studentResponses = append(studentResponses, Response.FromModel(student))
-	}
-
-	log.Println("Returned all students")
 	return ctx.JSON(http.StatusOK, studentResponses)
 }
 
@@ -56,12 +48,11 @@ func (c *StudentController) GetStudentByID(ctx echo.Context) error {
 	}
 
 	log.Println("Returned student by ID")
-	return ctx.JSON(http.StatusOK, Response.FromModel(student))
+	return ctx.JSON(http.StatusOK, student)
 }
 
 // CreateStudent handler to create a new Student
 func (c *StudentController) CreateStudent(ctx echo.Context) error {
-	// Parse the flag parameter as boolean
 	flagValue := ctx.QueryParam("flag")
 	flag, err := strconv.ParseBool(flagValue)
 	if err != nil {
@@ -69,8 +60,6 @@ func (c *StudentController) CreateStudent(ctx echo.Context) error {
 			"error": "Invalid flag value. Accepted values are true or false.",
 		})
 	}
-
-	// Bind and validate the student request
 	var req Request.StudentRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
@@ -78,18 +67,13 @@ func (c *StudentController) CreateStudent(ctx echo.Context) error {
 	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
 	}
-
-	// Convert request to model
-	student := req.ToModel()
-
-	// Call CreateStudent with the parsed flag (boolean)
-	result, err := c.Manager.CreateStudent(flag, student)
+	result, err := c.Manager.CreateStudent(flag, req)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
 
 	log.Println("Created new student")
-	return ctx.JSON(http.StatusCreated, Response.FromModel(result))
+	return ctx.JSON(http.StatusCreated, result)
 }
 
 // UpdateStudent handler to update an existing Student
@@ -109,8 +93,7 @@ func (c *StudentController) UpdateStudent(ctx echo.Context) error {
 	if err := ctx.Validate(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, err.Error())
 	}
-	student := req.ToModel()
-	updatedStudent, err := c.Manager.UpdateStudent(flag, id, student)
+	updatedStudent, err := c.Manager.UpdateStudent(flag, id, req)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, err.Error())
 	}
